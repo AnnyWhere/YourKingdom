@@ -571,10 +571,10 @@ QPushButton:pressed{
      <widget class="QLabel" name="Person_img">
       <property name="geometry">
        <rect>
-        <x>50</x>
+        <x>60</x>
         <y>200</y>
-        <width>221</width>
-        <height>201</height>
+        <width>191</width>
+        <height>211</height>
        </rect>
       </property>
       <property name="text">
