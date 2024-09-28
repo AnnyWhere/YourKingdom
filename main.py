@@ -50,7 +50,6 @@ def count_residents():
             ''')
     return cursor.fetchone()[0]
 
-
 class Kingdom(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -58,8 +57,8 @@ class Kingdom(QMainWindow):
         uic.loadUi('kingdom.ui', self)
         self.image = 0
         self.id = -1
-        self.name = 'Niko'
-        self.gender = 'm'
+        self.name = 'Stranger'
+        self.gender = '?'
         self.hunger = 0
         self.fatigue = 0
         self.health = 100
@@ -74,9 +73,32 @@ class Kingdom(QMainWindow):
         self.SwitchPerson.clicked.connect(self.NextPerson)
         self.Create_button.clicked.connect(self.CreateNewPerson)
         self.Change_appearance.clicked.connect(self.ChangeAppearance)
+        self.NewGame.clicked.connect(self.reset)
     def initUi(self):
         self.setWindowTitle("YourKingdom")
         self.setWindowIcon(QtGui.QIcon('King_Icon.jpg'))
+    def reset(self):
+        cursor.execute('''
+        DELETE FROM resident
+                ''')
+        self.Money.display(100)
+        saveMoney(100)
+        connection.commit()
+        self.image = 0
+        self.id = -1
+        self.name = 'Stranger'
+        self.gender = '?'
+        self.hunger = 0
+        self.fatigue = 0
+        self.health = 100
+        self.Person = 0
+        self.Dialog.setText("Welcome to your Kingdom, Your Majesty!")
+        self.Fatigue.setText(str(self.fatigue))
+        self.Gender.setText(self.gender)
+        self.Health.setText(str(self.health))
+        self.Hunger.setText(str(self.hunger))
+        self.NamePerson.setText(self.name)
+        self.Person_img.setPixmap(QPixmap('person.png'))
     def Edit(self):
         if self.Money.intValue() >= 100:
             self.stackedWidget.setCurrentIndex(1)
@@ -88,18 +110,21 @@ class Kingdom(QMainWindow):
         self.gender = self.new_gender.currentText()
         self.id = count_residents()
         new(self.id, self.name, self.gender, self.image)
+        saveMoney(loadMoney() - 100)
+        self.Money.display(loadMoney())
         self.BackToMain()
     def NextPerson(self):
-        self.Money.display(loadMoney())
-        self.id = (self.id+1) % count_residents()
-        (self.name, self.gender, self.hunger, self.fatigue, self.health, self.Person, self.image) = load(self.id)
-        self.Person_img.setPixmap(QPixmap('Person'+str(self.image+1)+'.png'))
-        self.Fatigue.setText(str(self.fatigue))
-        self.Gender.setText(self.gender)
-        self.Health.setText(str(self.health))
-        self.Hunger.setText(str(self.hunger))
-        self.NamePerson.setText(self.name)
-        self.Dialog.setText(["Long life and prosperity, Your Majesty!", "Thank You for Your presence, Your Majesty!"][randint(0, 1)]) if self.Person else self.Dialog.setText(". . . \n\nThis resident died")
+        if count_residents() > 0:
+            self.Money.display(loadMoney())
+            self.id = (self.id+1) % count_residents()
+            (self.name, self.gender, self.hunger, self.fatigue, self.health, self.Person, self.image) = load(self.id)
+            self.Person_img.setPixmap(QPixmap('Person'+str(self.image+1)+'.png'))
+            self.Fatigue.setText(str(self.fatigue))
+            self.Gender.setText(self.gender)
+            self.Health.setText(str(self.health))
+            self.Hunger.setText(str(self.hunger))
+            self.NamePerson.setText(self.name)
+            self.Dialog.setText(["Long life and prosperity, Your Majesty!", "Thank You for Your presence, Your Majesty!"][randint(0, 1)]) if self.Person else self.Dialog.setText(". . . \n\nThis resident died")
     def BackToMain(self):
         self.stackedWidget.setCurrentIndex(0)
     def ChangeAppearance(self):
