@@ -86,12 +86,18 @@
   <property name="windowTitle">
    <string>YourKingdom</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="QWidget" name="Kingdom">
    <property name="sizePolicy">
     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
      <horstretch>10</horstretch>
      <verstretch>10</verstretch>
     </sizepolicy>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>795</width>
+     <height>535</height>
+    </size>
    </property>
    <widget class="QLabel" name="GameTitle">
     <property name="geometry">
