@@ -90,6 +90,14 @@ class Kingdom(QMainWindow):
         self.BackE3.clicked.connect(self.Ending_list)
         self.ResetAll.clicked.connect(self.Full_Reset)
         self.people_ending.clicked.connect(self.People_End)
+        self.money_ending.clicked.connect(self.Money_End)
+        self.bad_ending.clicked.connect(self.Bad_End)
+    def Money_End(self):
+        if self.data['end1'] == 1:
+            self.stackedWidget.setCurrentIndex(3)
+    def Bad_End(self):
+        if self.data['end3'] == 1:
+            self.stackedWidget.setCurrentIndex(5)
     def Full_Reset(self):
         self.reset()
         self.data = {"money": 100,
