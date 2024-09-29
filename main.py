@@ -7,13 +7,13 @@ from PyQt6 import QtCore, QtGui, uic
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QStackedWidget
 from PyQt6.QtGui import QPixmap
 
-def saveMoney(money):
-    with open('wallet.json', 'w') as f:
-        json.dump({'money': money}, f)
-def loadMoney():
-    with open('wallet.json', 'r') as f:
-        M = json.load(f)
-        return M.get('money', 0)
+def saveData(data):
+    with open('data.json', 'w') as f:
+        json.dump(data, f)
+def loadData():
+    with open('data.json', 'r') as f:
+        d = json.load(f)
+        return d
 
 connection = sqlite3.connect("Kingdom.db")
 cursor = connection.cursor()
@@ -49,11 +49,16 @@ def count_residents():
     FROM resident
             ''')
     return cursor.fetchone()[0]
+def count_died():
+    cursor.execute('''
+    SELECT COUNT(*)
+    FROM resident WHERE status = 0
+            ''')
+    return cursor.fetchone()[0]
 
 class Kingdom(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.initUi()
         uic.loadUi('kingdom.ui', self)
         self.image = 0
         self.id = -1
@@ -63,6 +68,10 @@ class Kingdom(QMainWindow):
         self.fatigue = 0
         self.health = 100
         self.Person = 0
+        self.data = loadData()
+        self.money_ending.setText(("???", "The Richest Ruller")[self.data["end1"]])
+        self.people_ending.setText(("???", "The Greate Empire")[self.data["end2"]])
+        self.bad_ending.setText(("???", "The Broken Crown")[self.data["end3"]])
         self.new_gender.addItems(['Male', 'Female'])
         self.setCentralWidget(self.stackedWidget)
         self.act_work.clicked.connect(self.Work)
@@ -74,15 +83,29 @@ class Kingdom(QMainWindow):
         self.Create_button.clicked.connect(self.CreateNewPerson)
         self.Change_appearance.clicked.connect(self.ChangeAppearance)
         self.NewGame.clicked.connect(self.reset)
-    def initUi(self):
-        self.setWindowTitle("YourKingdom")
-        self.setWindowIcon(QtGui.QIcon('King_Icon.jpg'))
+        self.EndingsPage.clicked.connect(self.Ending_list)
+        self.Back_1.clicked.connect(self.BackToMain)
+        self.BackE1.clicked.connect(self.Ending_list)
+        self.BackE2.clicked.connect(self.Ending_list)
+        self.BackE3.clicked.connect(self.Ending_list)
+        self.ResetAll.clicked.connect(self.Full_Reset)
+        self.people_ending.clicked.connect(self.People_End)
+    def Full_Reset(self):
+        self.reset()
+        self.data = {"money": 100,
+            "end1": 0,
+            "end2": 0,
+            "end3": 0}
+        saveData(self.data)
+    def Ending_list(self):
+        self.stackedWidget.setCurrentIndex(2)
     def reset(self):
         cursor.execute('''
         DELETE FROM resident
                 ''')
         self.Money.display(100)
-        saveMoney(100)
+        self.data['money'] = 100
+        saveData(self.data)
         connection.commit()
         self.image = 0
         self.id = -1
@@ -98,11 +121,14 @@ class Kingdom(QMainWindow):
         self.Health.setText(str(self.health))
         self.Hunger.setText(str(self.hunger))
         self.NamePerson.setText(self.name)
-        self.Person_img.setPixmap(QPixmap('person.png'))
+        self.Person_img.setPixmap(QPixmap('./images/person.png'))
+    def People_End(self):
+        if self.data['end2'] == 1:
+            self.stackedWidget.setCurrentIndex(4)
     def Edit(self):
         if self.Money.intValue() >= 100:
             self.stackedWidget.setCurrentIndex(1)
-            self.imagePerson.setPixmap(QPixmap('Person'+str(self.image+1)+'.png'))
+            self.imagePerson.setPixmap(QPixmap('./images/Person'+str(self.image+1)+'.png'))
         else:
             self.Dialog.setText("We don\'t have enought money to attract new residents, Your Majesty.")
     def CreateNewPerson(self):
@@ -110,15 +136,22 @@ class Kingdom(QMainWindow):
         self.gender = self.new_gender.currentText()
         self.id = count_residents()
         new(self.id, self.name, self.gender, self.image)
-        saveMoney(loadMoney() - 100)
-        self.Money.display(loadMoney())
+        self.data['money'] -= 100
+        self.Money.display(self.data['money'])
+        self.Person = 1
+        if count_residents() == 25:
+            self.data['end2'] = 1
+            saveData(self.data)
+            self.people_ending.setText("The Greate Empire")
+            self.stackedWidget.setCurrentIndex(4)
         self.BackToMain()
+        saveData(self.data)
     def NextPerson(self):
         if count_residents() > 0:
-            self.Money.display(loadMoney())
+            self.Money.display(self.data['money'])
             self.id = (self.id+1) % count_residents()
             (self.name, self.gender, self.hunger, self.fatigue, self.health, self.Person, self.image) = load(self.id)
-            self.Person_img.setPixmap(QPixmap('Person'+str(self.image+1)+'.png'))
+            self.Person_img.setPixmap(QPixmap('./images/Person'+str(self.image+1)+'.png'))
             self.Fatigue.setText(str(self.fatigue))
             self.Gender.setText(self.gender)
             self.Health.setText(str(self.health))
@@ -129,7 +162,7 @@ class Kingdom(QMainWindow):
         self.stackedWidget.setCurrentIndex(0)
     def ChangeAppearance(self):
         self.image = (self.image + 1)%4
-        self.imagePerson.setPixmap(QPixmap('Person'+str(self.image+1)+'.png'))
+        self.imagePerson.setPixmap(QPixmap('./images/Person'+str(self.image+1)+'.png'))
     def Work(self):
         self.fatigue = self.fatigue + 10
         if self.fatigue > 100:
@@ -138,9 +171,15 @@ class Kingdom(QMainWindow):
         elif self.fatigue < 101 and self.Person:
             self.Fatigue.setText(str(self.fatigue))
             self.Money.display(self.Money.intValue() + 20)
-            saveMoney(self.Money.intValue())
+            self.data['money'] = self.Money.intValue()
             self.Hungry()
             save(self.hunger, self.fatigue, self.health, self.Person, self.id)
+            saveData(self.data)
+            if self.data['money'] > 5000 and self.data['end1'] == 0:
+                self.data['end1'] = 1
+                saveData(self.data)
+                self.money_ending.setText("The Richest Ruller")
+                self.stackedWidget.setCurrentIndex(3)
     def Sleep(self):
         if self.Person:
             self.fatigue = self.fatigue - 30
@@ -149,13 +188,17 @@ class Kingdom(QMainWindow):
             self.Hungry()
             save(self.hunger, self.fatigue, self.health, self.Person, self.id)
             self.Dialog.setText(["With Your permission, I'll rest for a while.", "Thank You for your concern, Your Majesty!", "I will gain strength and I will definitely repay You for this favor, Your Majesty!"][randint(0, 2)])
+        else:
+            self.Change_health()
     def Feed(self):
         if self.Person:
             if self.Money.intValue() >= 20:
                 self.hunger -= 30
                 self.hunger = self.hunger if self.hunger > 0 else 0
                 self.Hunger.setText(str(self.hunger))
-                self.Money.display(self.Money.intValue() - 20)
+                self.data['money'] -= 20
+                self.Money.display(self.data['money'])
+                saveData(self.data)
                 self.Dialog.setText(["Thank You for Your generosity, Your Majesty!", "Oh, thank You, Your Majesty! You are so kind!", "Thanks to You, my family will not starve! Thank You, Your Majesty!"][randint(0, 2)])
     def Hungry(self):
         self.hunger += 5
@@ -174,6 +217,11 @@ class Kingdom(QMainWindow):
             self.Dialog.setText(". . . \n\nThis resident died")
             self.Hunger.setText("0")
             self.Fatigue.setText("0")
+            if count_residents() == count_residents() and self.data['money'] < 100:
+                self.data['end3'] = 1
+                saveData(self.data)
+                self.bad_ending.setText("The Broken Crown")
+                self.stackedWidget.setCurrentIndex(5)
         self.Health.setText(str(self.health))
         save(self.hunger, self.fatigue, self.health, self.Person, self.id)
 
@@ -182,6 +230,9 @@ class Kingdom(QMainWindow):
 
 app = QApplication(sys.argv)
 window = Kingdom()
+window.setWindowIcon(QtGui.QIcon('./images/King_Icon.jpg'))
+window.setWindowTitle("Your Kingdom")
+window.Money.display(window.data['money'])
 window.show()
 
 app.exec()
