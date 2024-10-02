@@ -94,6 +94,7 @@ class Kingdom(QMainWindow):
         self.fatigue = 0
         self.health = 100
         self.Person = 0
+        self.Person_img.setPixmap(QPixmap(dir_path + 'images/person.png'))
         self.data = loadData()
         self.money_ending.setText(("???", "The Richest Ruller")[self.data["end1"]])
         self.people_ending.setText(("???", "The Greate Empire")[self.data["end2"]])
