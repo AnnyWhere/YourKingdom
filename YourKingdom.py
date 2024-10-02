@@ -1,22 +1,48 @@
 import sys
 import sqlite3
 import json
+import os
 
 from random import randint
 from PyQt6 import QtCore, QtGui, uic
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QStackedWidget
 from PyQt6.QtGui import QPixmap
 
+def path_to_res(relative_path):
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 def saveData(data):
-    with open('data.json', 'w') as f:
+    with open('C:/Games/YourKingdom/data/data.json', 'w') as f:
         json.dump(data, f)
 def loadData():
-    with open('data.json', 'r') as f:
-        d = json.load(f)
-        return d
-
-connection = sqlite3.connect("Kingdom.db")
+    try:
+        with open('C:/Games/YourKingdom/data/data.json', 'r') as f:
+            d = json.load(f)
+            return d
+    except:
+        saveData({"money": 100,
+            "end1": 0,
+            "end2": 0,
+            "end3": 0})
+        return loadData()
+            
+dir_path = "C:/Games/YourKingdom/"
+os.makedirs(dir_path, exist_ok=True)
+connection = sqlite3.connect(dir_path + "data/Kingdom.db")
 cursor = connection.cursor()
+cursor.execute('''CREATE TABLE IF NOT EXISTS resident(
+               id INT PRIMARY KEY, 
+               name TEXT NOT NULL, 
+               gender TEXT NOT NULL, 
+               hunger INT, 
+               fatigue INT, 
+               health INT,
+               status INT, 
+               image INT)''')
 def save(hunger, fatigue, health, Person, id):
     cursor.execute('''
     UPDATE resident SET
@@ -59,7 +85,7 @@ def count_died():
 class Kingdom(QMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi('kingdom.ui', self)
+        uic.loadUi(path_to_res('kingdom.ui'), self)
         self.image = 0
         self.id = -1
         self.name = 'Stranger'
@@ -129,14 +155,14 @@ class Kingdom(QMainWindow):
         self.Health.setText(str(self.health))
         self.Hunger.setText(str(self.hunger))
         self.NamePerson.setText(self.name)
-        self.Person_img.setPixmap(QPixmap('./images/person.png'))
+        self.Person_img.setPixmap(QPixmap(path_to_res('./images/person.png')))
     def People_End(self):
         if self.data['end2'] == 1:
             self.stackedWidget.setCurrentIndex(4)
     def Edit(self):
         if self.Money.intValue() >= 100:
             self.stackedWidget.setCurrentIndex(1)
-            self.imagePerson.setPixmap(QPixmap('./images/Person'+str(self.image+1)+'.png'))
+            self.imagePerson.setPixmap(QPixmap(dir_path + 'images/Person'+str(self.image+1)+'.png'))
         else:
             self.Dialog.setText("We don\'t have enought money to attract new residents, Your Majesty.")
     def CreateNewPerson(self):
@@ -159,7 +185,7 @@ class Kingdom(QMainWindow):
             self.Money.display(self.data['money'])
             self.id = (self.id+1) % count_residents()
             (self.name, self.gender, self.hunger, self.fatigue, self.health, self.Person, self.image) = load(self.id)
-            self.Person_img.setPixmap(QPixmap('./images/Person'+str(self.image+1)+'.png'))
+            self.Person_img.setPixmap(QPixmap(dir_path + 'images/Person'+str(self.image+1)+'.png'))
             self.Fatigue.setText(str(self.fatigue))
             self.Gender.setText(self.gender)
             self.Health.setText(str(self.health))
@@ -170,7 +196,7 @@ class Kingdom(QMainWindow):
         self.stackedWidget.setCurrentIndex(0)
     def ChangeAppearance(self):
         self.image = (self.image + 1)%4
-        self.imagePerson.setPixmap(QPixmap('./images/Person'+str(self.image+1)+'.png'))
+        self.imagePerson.setPixmap(QPixmap(dir_path + './images/Person'+str(self.image+1)+'.png'))
     def Work(self):
         self.fatigue = self.fatigue + 10
         if self.fatigue > 100:
@@ -238,9 +264,11 @@ class Kingdom(QMainWindow):
 
 app = QApplication(sys.argv)
 window = Kingdom()
-window.setWindowIcon(QtGui.QIcon('./images/King_Icon.jpg'))
+window.setWindowIcon(QtGui.QIcon(dir_path + 'images/King_Icon.png'))
 window.setWindowTitle("Your Kingdom")
+window.setFixedSize(800, 580)
 window.Money.display(window.data['money'])
 window.show()
 
 app.exec()
+connection.close()
