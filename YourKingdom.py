@@ -155,7 +155,7 @@ class Kingdom(QMainWindow):
         self.Health.setText(str(self.health))
         self.Hunger.setText(str(self.hunger))
         self.NamePerson.setText(self.name)
-        self.Person_img.setPixmap(QPixmap(path_to_res('./images/person.png')))
+        self.Person_img.setPixmap(QPixmap(dir_path + 'images/person.png'))
     def People_End(self):
         if self.data['end2'] == 1:
             self.stackedWidget.setCurrentIndex(4)
